@@ -13,7 +13,7 @@ export default function App() {
    * All state property to store all waves
    */
   const [allWaves, setAllWaves] = useState([])
-  const contractAddress = '0x825154Ab5B553B382b8D2a0bb47ee5a387F4a288'
+  const contractAddress = '0x3DAA7A34d6732D42538F3Db43d9d349517BBdd81'
   /**
    * Create a variable here that references the abi content!
    */
@@ -164,7 +164,7 @@ export default function App() {
       console.log(error)
     }
   }
-
+  const [remaining, setRemaining] = useState(undefined)
   /**
    * Listen in for emitter events!
    */
@@ -187,12 +187,23 @@ export default function App() {
       const provider = new ethers.providers.Web3Provider(window.ethereum)
       const signer = provider.getSigner()
 
+      provider.getBalance(contractAddress).then(balance => {
+        setRemaining((balance.toString() / 1E18).toFixed(5))
+        // setRemaining(balance.toNumber() / 1E18)
+      })
+
       wavePortalContract = new ethers.Contract(
         contractAddress,
         contractABI,
         signer
       )
-      wavePortalContract.on('NewWave', onNewWave)
+      
+      wavePortalContract.on('NewWave', async (from, timestamp, message) => {
+        onNewWave(from, timestamp, message)
+        const balance = await provider.getBalance(contractAddress)
+        setRemaining((balance.toString() / 1E18).toFixed(5))
+        // setRemaining(balance.toNumber() / 1E18)
+      })
     }
 
     return () => {
@@ -222,6 +233,10 @@ export default function App() {
           It's Sunny Stag learns to create a smart contract =D <br />
           Connect your Ethereum wallet and wave at me!
         </div>
+
+        <div className="header">
+          Remaining: {remaining} ETH
+        </div>
         <input
           type="text"
           ref={inputRef}
@@ -248,7 +263,7 @@ export default function App() {
             flexDirection: 'column-reverse',
             padding: 5,
             border: '1px solid #222',
-            marginTop: 20,
+            marginTop: 20
           }}
         >
           {allWaves.map((wave, index) => {
