@@ -230,7 +230,8 @@ export default function App() {
         <div className="bio">
           It's Sunny Stag learns to create a smart contract =D <br />
           Connect your Ethereum wallet and wave at me! <br />
-          (Rinkeby Testnet)
+          (Rinkeby Testnet) <br/>
+          go <a href="https://faucets.chain.link/rinkeby" target="_blank">here</a> to request some ETH to test
         </div>
 
         <div className="header">
