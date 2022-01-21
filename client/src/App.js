@@ -13,7 +13,7 @@ export default function App() {
    * All state property to store all waves
    */
   const [allWaves, setAllWaves] = useState([])
-  const contractAddress = '0xc4c569208FC505fF4a277631E92F3AfAb4db36FD'
+  const contractAddress = '0x825154Ab5B553B382b8D2a0bb47ee5a387F4a288'
   /**
    * Create a variable here that references the abi content!
    */
@@ -98,16 +98,13 @@ export default function App() {
          * Execute the actual wave from your smart contract
          */
         const message = inputRef?.current?.value || ''
-        const waveTxn = await wavePortalContract.wave(message)
+        const waveTxn = await wavePortalContract.wave(message, { gasLimit: 300000 })
         console.log('Mining...', waveTxn.hash)
 
         await waveTxn.wait()
         console.log('Mined -- ', waveTxn.hash)
 
-        [count] = await Promise.all([
-          wavePortalContract.getTotalWaves(),
-          getAllWaves()
-        ])
+        count = await wavePortalContract.getTotalWaves()
         console.log('Retrieved total wave count...', count.toNumber())
         // clear the input
         if (inputRef?.current) {
@@ -168,6 +165,43 @@ export default function App() {
     }
   }
 
+  /**
+   * Listen in for emitter events!
+   */
+  useEffect(() => {
+    let wavePortalContract
+
+    const onNewWave = (from, timestamp, message) => {
+      console.log('NewWave', from, timestamp, message)
+      setAllWaves(prevState => [
+        ...prevState,
+        {
+          address: from,
+          timestamp: new Date(timestamp * 1000),
+          message: message
+        }
+      ])
+    }
+
+    if (window.ethereum) {
+      const provider = new ethers.providers.Web3Provider(window.ethereum)
+      const signer = provider.getSigner()
+
+      wavePortalContract = new ethers.Contract(
+        contractAddress,
+        contractABI,
+        signer
+      )
+      wavePortalContract.on('NewWave', onNewWave)
+    }
+
+    return () => {
+      if (wavePortalContract) {
+        wavePortalContract.off('NewWave', onNewWave)
+      }
+    }
+  }, [])
+
   /*
    * This runs our function when the page loads.
    */
@@ -214,7 +248,7 @@ export default function App() {
             flexDirection: 'column-reverse',
             padding: 5,
             border: '1px solid #222',
-            marginTop: 20
+            marginTop: 20,
           }}
         >
           {allWaves.map((wave, index) => {

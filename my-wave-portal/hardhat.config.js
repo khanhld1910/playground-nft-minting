@@ -1,8 +1,6 @@
 require('dotenv').config()
 require('@nomiclabs/hardhat-waffle')
 
-const configs = require('./configs')
-
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
 task('accounts', 'Prints the list of accounts', async (taskArgs, hre) => {
@@ -23,8 +21,13 @@ module.exports = {
   solidity: '0.8.0',
   networks: {
     rinkeby: {
-      url: configs.ALCHEMY_API_URL,
-      accounts: [configs.WALLET_PRIVATE_ACCOUNT_KEY]
-    }
+      url: process.env.STAGING_ALCHEMY_KEY,
+      accounts: [process.env.WALLET_PRIVATE_KEY],
+    },
+    mainnet: {
+      chainId: 1,
+      url: process.env.PROD_ALCHEMY_KEY,
+      accounts: [process.env.WALLET_PRIVATE_KEY],
+    },
   }
 }
