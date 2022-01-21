@@ -188,8 +188,7 @@ export default function App() {
       const signer = provider.getSigner()
 
       provider.getBalance(contractAddress).then(balance => {
-        setRemaining((balance.toString() / 1E18).toFixed(5))
-        // setRemaining(balance.toNumber() / 1E18)
+        setRemaining((balance.toString() / 1E18).toFixed(4))
       })
 
       wavePortalContract = new ethers.Contract(
@@ -201,8 +200,7 @@ export default function App() {
       wavePortalContract.on('NewWave', async (from, timestamp, message) => {
         onNewWave(from, timestamp, message)
         const balance = await provider.getBalance(contractAddress)
-        setRemaining((balance.toString() / 1E18).toFixed(5))
-        // setRemaining(balance.toNumber() / 1E18)
+        setRemaining((balance.toString() / 1E18).toFixed(4))
       })
     }
 
@@ -231,11 +229,12 @@ export default function App() {
 
         <div className="bio">
           It's Sunny Stag learns to create a smart contract =D <br />
-          Connect your Ethereum wallet and wave at me!
+          Connect your Ethereum wallet and wave at me! <br />
+          If you are luckily, you'll get ETH 😍😍😍
         </div>
 
         <div className="header">
-          Remaining: {remaining} ETH
+          {remaining} ETH remaining 😤😤😤
         </div>
         <input
           type="text"
