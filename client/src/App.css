@@ -24,6 +24,13 @@
   margin-top: 16px;
 }
 
+.status {
+  text-align: left;
+  color: gray;
+  margin-top: 16px;
+  width: 100%;
+}
+
 .waveButton {
   cursor: pointer;
   margin-top: 16px;

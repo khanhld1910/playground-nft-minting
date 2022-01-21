@@ -76,8 +76,10 @@ export default function App() {
   const inputRef = useRef()
 
   const [isWaving, setIsWaving] = useState(false)
+  const [txnHash, setTxnHash] = useState()
   const wave = async () => {
     setIsWaving(true)
+    setTxnHash(null)
     try {
       const { ethereum } = window
 
@@ -100,6 +102,7 @@ export default function App() {
         const message = inputRef?.current?.value || ''
         const waveTxn = await wavePortalContract.wave(message, { gasLimit: 300000 })
         console.log('Mining...', waveTxn.hash)
+        setTxnHash(waveTxn.hash)
 
         await waveTxn.wait()
         console.log('Mined -- ', waveTxn.hash)
@@ -146,6 +149,7 @@ export default function App() {
          */
         let wavesCleaned = []
         waves.forEach(wave => {
+          console.log(wave)
           wavesCleaned.push({
             address: wave.waver,
             timestamp: new Date(wave.timestamp * 1000),
@@ -178,7 +182,7 @@ export default function App() {
         {
           address: from,
           timestamp: new Date(timestamp * 1000),
-          message: message
+          message: message,
         }
       ])
     }
@@ -197,11 +201,12 @@ export default function App() {
         signer
       )
       
-      wavePortalContract.on('NewWave', async (from, timestamp, message) => {
-        onNewWave(from, timestamp, message)
-        const balance = await provider.getBalance(contractAddress)
-        setRemaining((balance.toString() / 1E18).toFixed(4))
+      wavePortalContract.on('NewWave', () => {
+        provider.getBalance(contractAddress).then(balance => {
+          setRemaining((balance.toString() / 1E18).toFixed(4))
+        })
       })
+      wavePortalContract.on('NewWave', onNewWave)
     }
 
     return () => {
@@ -230,13 +235,15 @@ export default function App() {
         <div className="bio">
           It's Sunny Stag learns to create a smart contract =D <br />
           Connect your Ethereum wallet and wave at me! <br />
-          (Rinkeby Testnet) <br/>
-          go <a href="https://faucets.chain.link/rinkeby" target="_blank">here</a> to request some ETH to test
+          (Rinkeby Testnet) <br />
+          go{' '}
+          <a href="https://faucets.chain.link/rinkeby" target="_blank">
+            here
+          </a>{' '}
+          to request some ETH to test
         </div>
 
-        <div className="header">
-          {remaining} ETH remaining 😤😤😤
-        </div>
+        <div className="header">{remaining} ETH remaining 😤😤😤</div>
         <input
           type="text"
           ref={inputRef}
@@ -246,6 +253,19 @@ export default function App() {
         <button className="waveButton" onClick={wave} disabled={isWaving}>
           {isWaving ? 'Waving...' : 'Wave at Me'}
         </button>
+        <div className="status">
+          {txnHash && (
+            <div>
+              recent transaction hash:{' '}
+              <a
+                href={`https://rinkeby.etherscan.io/tx/${txnHash}`}
+                target="_blank"
+              >
+                {txnHash}
+              </a>
+            </div>
+          )}
+        </div>
 
         {/*
          * If there is no currentAccount render this button
