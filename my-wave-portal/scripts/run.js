@@ -1,48 +1,40 @@
-const main = async () => {
-  const waveContractFactory = await hre.ethers.getContractFactory("WavePortal");
-  const waveContract = await waveContractFactory.deploy({
-    value: hre.ethers.utils.parseEther("0.1")
-  });
-  await waveContract.deployed();
-  console.log("Contract addy:", waveContract.address);
+const { ethers, waffle } = require('hardhat')
+const provider = waffle.provider
 
-  // get contract balance
+const CONTRACT_NAME = 'Cohart'
 
-  let contractBalance = await hre.ethers.provider.getBalance(
-    waveContract.address
+async function main() {
+  const MyContractFactory = await ethers.getContractFactory(CONTRACT_NAME)
+  const myContract = await MyContractFactory.deploy()
+
+  await myContract.deployed()
+
+  const [owner, personA, personB, personC, personD, ...others] = await ethers.getSigners()
+
+  const getBalance = async address =>
+    console.log(address, ':', (await provider.getBalance(address)).toString())
+  
+  // await getA()
+  // mint as personA, price: 1 ether
+  await myContract.connect(personA).mintNft(
+    'URI0',
+    (1e18).toString(),
+    [personC, personD],
+    [20, 20],
   )
-  console.log(
-    'Contract balance:',
-    hre.ethers.utils.formatEther(contractBalance)
-  )
+  // await getA()
 
-  /*
-   * Let's try two waves now
-   */
-  const waveTxn = await waveContract.wave("This is wave #1");
-  await waveTxn.wait();
+  // => tokenId = 0
 
-  const waveTxn2 = await waveContract.wave("This is wave #2");
-  await waveTxn2.wait();
+  // buy as personB
 
-  contractBalance = await hre.ethers.provider.getBalance(waveContract.address);
-  console.log(
-    "Contract balance:",
-    hre.ethers.utils.formatEther(contractBalance)
-  );
+  // await getBalance()
+  // await myContract.connect(personB).buyNft(0, { value: (1e18).toString() })
+}
 
-  let allWaves = await waveContract.getAllWaves();
-  console.log(allWaves);
-};
-
-const runMain = async () => {
-  try {
-    await main();
-    process.exit(0);
-  } catch (error) {
-    console.log(error);
-    process.exit(1);
-  }
-};
-
-runMain();
+main()
+  .then(() => process.exit(0))
+  .catch(error => {
+    console.error(error)
+    process.exit(1)
+  })
