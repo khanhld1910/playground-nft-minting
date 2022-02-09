@@ -1,23 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { ethers } from 'ethers'
-
-import abi from './utils/WavePortal.json'
 import './App.css'
 
-export default function App() {
-  /*
-   * Just a state variable we use to store our user's public wallet.
-   */
+import { ethers, utils } from 'ethers'
+
+import abi from './utils/MyContractABI.json'
+
+const CONTRACT_ADDRESS = '0xE5e2E87E65e594E1deF0ffaA23F1750288cD43d0'
+
+const App = () => {
   const [currentAccount, setCurrentAccount] = useState('')
-  /*
-   * All state property to store all waves
-   */
-  const [allWaves, setAllWaves] = useState([])
-  const contractAddress = '0x3DAA7A34d6732D42538F3Db43d9d349517BBdd81'
-  /**
-   * Create a variable here that references the abi content!
-   */
-  const contractABI = abi.abi
 
   const checkIfWalletIsConnected = async () => {
     let isConnected
@@ -52,9 +43,6 @@ export default function App() {
     return isConnected
   }
 
-  /**
-   * Implement your connectWallet method here
-   */
   const connectWallet = async () => {
     try {
       const { ethereum } = window
@@ -73,12 +61,19 @@ export default function App() {
     }
   }
 
+  const [total, setTotal] = useState('')
+  const [target, setTarget] = useState('')
+
+
+  const contractABI = abi.abi
+
   const inputRef = useRef()
 
-  const [isWaving, setIsWaving] = useState(false)
+  const [isSending, setIsSending] = useState(false)
   const [txnHash, setTxnHash] = useState()
-  const wave = async () => {
-    setIsWaving(true)
+  
+  const fund = async () => {
+    setIsSending(true)
     setTxnHash(null)
     try {
       const { ethereum } = window
@@ -86,29 +81,30 @@ export default function App() {
       if (ethereum) {
         const provider = new ethers.providers.Web3Provider(ethereum)
         const signer = provider.getSigner()
-        const wavePortalContract = new ethers.Contract(
-          contractAddress,
+        const MyFundingContract = new ethers.Contract(
+          CONTRACT_ADDRESS,
           contractABI,
           signer
         )
 
-        // read the wave count from smart contract
-        let count = await wavePortalContract.getTotalWaves()
-        console.log('Retrieved total wave count...', count.toNumber())
+        let total = await MyFundingContract.total()
+        console.log('Retrieved total funding...', total.toString())
+        
+        const value = inputRef?.current?.value || ''
+        console.log('Fund:', utils.parseEther(value).toString())
+        const fundTxn = await MyFundingContract.fund({
+          gasLimit: 300000,
+          value: utils.parseEther(value).toString(),
+        })
 
-        /*
-         * Execute the actual wave from your smart contract
-         */
-        const message = inputRef?.current?.value || ''
-        const waveTxn = await wavePortalContract.wave(message, { gasLimit: 300000 })
-        console.log('Mining...', waveTxn.hash)
-        setTxnHash(waveTxn.hash)
+        console.log('Funding...', fundTxn.hash)
+        setTxnHash(fundTxn.hash)
 
-        await waveTxn.wait()
-        console.log('Mined -- ', waveTxn.hash)
+        await fundTxn.wait()
+        console.log('Funded -- ', fundTxn.hash)
 
-        count = await wavePortalContract.getTotalWaves()
-        console.log('Retrieved total wave count...', count.toNumber())
+        total = await MyFundingContract.total()
+        console.log('Retrieved total funding...', total.toString())
         // clear the input
         if (inputRef?.current) {
           inputRef.current.value = ''
@@ -119,48 +115,23 @@ export default function App() {
     } catch (error) {
       console.log(error)
     } finally {
-      setIsWaving(false)
+      setIsSending(false)
     }
   }
 
-  /*
-   * Create a method that gets all waves from your contract
-   */
-  const getAllWaves = async () => {
+  const getTotal = async () => {
     try {
       const { ethereum } = window
       if (ethereum) {
         const provider = new ethers.providers.Web3Provider(ethereum)
         const signer = provider.getSigner()
-        const wavePortalContract = new ethers.Contract(
-          contractAddress,
+        const MyFundingContract = new ethers.Contract(
+          CONTRACT_ADDRESS,
           contractABI,
           signer
         )
-
-        /*
-         * Call the getAllWaves method from your Smart Contract
-         */
-        const waves = await wavePortalContract.getAllWaves()
-
-        /*
-         * We only need address, timestamp, and message in our UI so let's
-         * pick those out
-         */
-        let wavesCleaned = []
-        waves.forEach(wave => {
-          console.log(wave)
-          wavesCleaned.push({
-            address: wave.waver,
-            timestamp: new Date(wave.timestamp * 1000),
-            message: wave.message
-          })
-        })
-
-        /*
-         * Store our data in React State
-         */
-        setAllWaves(wavesCleaned)
+        const totalBignumber = await MyFundingContract.total()
+        setTotal(utils.formatEther(totalBignumber))
       } else {
         console.log("Ethereum object doesn't exist!")
       }
@@ -168,61 +139,63 @@ export default function App() {
       console.log(error)
     }
   }
-  const [remaining, setRemaining] = useState(undefined)
-  /**
-   * Listen in for emitter events!
-   */
-  useEffect(() => {
-    let wavePortalContract
 
-    const onNewWave = (from, timestamp, message) => {
-      console.log('NewWave', from, timestamp, message)
-      setAllWaves(prevState => [
-        ...prevState,
-        {
-          address: from,
-          timestamp: new Date(timestamp * 1000),
-          message: message,
-        }
-      ])
+  const getTarget = async () => {
+    try {
+      const { ethereum } = window
+      if (ethereum) {
+        const provider = new ethers.providers.Web3Provider(ethereum)
+        const signer = provider.getSigner()
+        const MyFundingContract = new ethers.Contract(
+          CONTRACT_ADDRESS,
+          contractABI,
+          signer
+        )
+        const targetBignumber = await MyFundingContract.target()
+        setTarget(utils.formatEther(targetBignumber))
+      } else {
+        console.log("Ethereum object doesn't exist!")
+      }
+    } catch (error) {
+      console.log(error)
+    }
+  }
+  
+
+  useEffect(() => {
+    let MyFundingContract
+
+    const onFund = (from, timestamp, message) => {
+      console.log('Funding...', from, timestamp, message)
+      getTotal()
     }
 
     if (window.ethereum) {
       const provider = new ethers.providers.Web3Provider(window.ethereum)
       const signer = provider.getSigner()
 
-      provider.getBalance(contractAddress).then(balance => {
-        setRemaining((balance.toString() / 1E18).toFixed(4))
-      })
-
-      wavePortalContract = new ethers.Contract(
-        contractAddress,
+      MyFundingContract = new ethers.Contract(
+        CONTRACT_ADDRESS,
         contractABI,
         signer
       )
-      
-      wavePortalContract.on('NewWave', () => {
-        provider.getBalance(contractAddress).then(balance => {
-          setRemaining((balance.toString() / 1E18).toFixed(4))
-        })
-      })
-      wavePortalContract.on('NewWave', onNewWave)
+      getTarget()    
+      MyFundingContract.on('Fund', onFund)
     }
 
     return () => {
-      if (wavePortalContract) {
-        wavePortalContract.off('NewWave', onNewWave)
+      if (MyFundingContract) {
+        MyFundingContract.off('Fund', onFund)
       }
     }
   }, [])
+  
 
-  /*
-   * This runs our function when the page loads.
-   */
   useEffect(() => {
     checkIfWalletIsConnected().then(isConnected => {
       if (isConnected) {
-        getAllWaves()
+        getTotal()
+        // getTarget()
       }
     })
   }, [])
@@ -243,15 +216,15 @@ export default function App() {
           to request some ETH to test
         </div>
 
-        <div className="header">{remaining} ETH remaining 😤😤😤</div>
+        <div className="header">Funding progress: {total}/{target} ETH 😍😍😍</div>
         <input
           type="text"
           ref={inputRef}
           style={{ marginTop: 50, height: '1.5rem' }}
-          placeholder="Send me a message"
+          placeholder="send me Eth 🤑 "
         />
-        <button className="waveButton" onClick={wave} disabled={isWaving}>
-          {isWaving ? 'Waving...' : 'Wave at Me'}
+        <button className="waveButton" onClick={fund} disabled={isSending}>
+          {isSending ? '😍😍😍 sending...' : 'Send me some Eth 🤑'}
         </button>
         <div className="status">
           {txnHash && (
@@ -276,34 +249,8 @@ export default function App() {
           </button>
         )}
 
-        <div
-          className="descending-wave-list-by-time"
-          style={{
-            display: 'flex',
-            flexDirection: 'column-reverse',
-            padding: 5,
-            border: '1px solid #222',
-            marginTop: 20
-          }}
-        >
-          {allWaves.map((wave, index) => {
-            return (
-              <div
-                key={index}
-                style={{
-                  backgroundColor: 'OldLace',
-                  marginTop: '16px',
-                  padding: '8px'
-                }}
-              >
-                <div>Address: {wave.address}</div>
-                <div>Time: {wave.timestamp.toString()}</div>
-                <div>Message: {wave.message}</div>
-              </div>
-            )
-          })}
-        </div>
       </div>
     </div>
   )
 }
+export default App
