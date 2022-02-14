@@ -5,6 +5,9 @@ import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract CohartMint is ERC1155, Ownable {
+    
+    mapping (uint256 => address) tokenCreator;
+
     constructor()
         ERC1155("https://gateway.pinata.cloud/ipfs/QmTN32qBKYqnyvatqfnU8ra6cYUGNxpYziSddCatEmopLR/metadata/api/item/{id}.json")
     {}
@@ -13,17 +16,13 @@ contract CohartMint is ERC1155, Ownable {
         _setURI(newuri);
     }
 
-    function mint(address account, uint256 id, uint256 amount, bytes memory data)
+    // tokenId should be stored and incremented by Cohart's backend
+    function mint(uint256 tokenId, uint256 amount)
         public
-        onlyOwner
     {
-        _mint(account, id, amount, data);
-    }
-
-    function mintBatch(address to, uint256[] memory ids, uint256[] memory amounts, bytes memory data)
-        public
-        onlyOwner
-    {
-        _mintBatch(to, ids, amounts, data);
+        require(tokenCreator[tokenId] == address(0), "TokenId is existed!");
+        
+        tokenCreator[tokenId] = msg.sender;
+        _mint(msg.sender, tokenId, amount, "0x000");
     }
 }
